@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Оплата{% endblock %}
+{% block content %}
+<a class="back-link in-nav" href="{{ url_for('main.my_bookings') }}">Назад</a>
+<section class="form-shell payment-shell">
+    <h1>Оплата</h1>
+    <p class="payment-sum">Сумма: {{ "{:,}".format(booking.price).replace(",", ".") }} рублей</p>
+    <form method="post" class="payment-layout" id="payment-form">
+        <div>
+            <h2>Выбор способа оплаты</h2>
+            <div class="payment-methods">
+                {% for method in payment_methods %}
+                    <label><input type="radio" name="payment_method" value="{{ method }}" required> {{ method }}</label>
+                {% endfor %}
+            </div>
+        </div>
+        <div id="card-fields" class="card-fields visible">
+            <label>Номер карты <input name="card_number" inputmode="numeric" autocomplete="off"></label>
+            <label>Владелец карты <input name="card_holder" autocomplete="off"></label>
+            <label>Срок действия <input name="card_expiry" placeholder="MM/YY" autocomplete="off"></label>
+            <label>CVV <input name="card_cvv" inputmode="numeric" autocomplete="off"></label>
+        </div>
+        <button class="button primary" type="submit">Оплатить бронирование</button>
+    </form>
+</section>
+<script src="{{ url_for('static', filename='js/payment.js') }}"></script>
+{% endblock %}

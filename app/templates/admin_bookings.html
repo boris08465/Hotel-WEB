@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Все бронирования{% endblock %}
+{% block content %}
+<section class="page-head admin-page-head">
+    <h1>Все бронирования</h1>
+    <form method="get" class="inline-form admin-filter-form">
+        <select name="status">
+            <option value="">Все статусы</option>
+            {% for status in statuses %}
+                <option value="{{ status }}" {% if selected_status == status %}selected{% endif %}>{{ status }}</option>
+            {% endfor %}
+        </select>
+        <button class="button admin-btn" type="submit">Фильтр</button>
+    </form>
+</section>
+<section class="admin-list admin-bookings-list">
+    {% for item in bookings %}
+        <article class="booking-admin">
+            <h2>#{{ item.id }} {{ item.surname }} {{ item.name }} — {{ item.email }}</h2>
+            <form method="post" action="{{ url_for('main.admin_booking_edit', booking_id=item.id) }}" class="form admin-form">
+                <label>Заезд <input type="date" name="check_in" value="{{ item.check_in }}" required></label>
+                <label>Выезд <input type="date" name="check_out" value="{{ item.check_out }}" required></label>
+                <label>Взрослые <input type="number" name="adults" min="1" value="{{ item.adults }}" required></label>
+                <label>Дети <input type="number" name="children" min="0" value="{{ item.children }}" required></label>
+                <label>Номер
+                    <select name="room_type">
+                        {% for room in room_prices %}
+                            <option value="{{ room }}" {% if item.room_type == room %}selected{% endif %}>{{ room }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Статус
+                    <select name="status">
+                        {% for status in statuses %}
+                            <option value="{{ status }}" {% if item.status == status %}selected{% endif %}>{{ status }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Способ оплаты
+                    <select name="payment_method">
+                        <option value="">Не выбрано</option>
+                        {% for method in payment_methods %}
+                            <option value="{{ method }}" {% if item.payment_method == method %}selected{% endif %}>{{ method }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <button class="button primary admin-btn" type="submit">Сохранить</button>
+            </form>
+            <div class="admin-actions">
+                <form method="post" action="{{ url_for('main.admin_booking_status', booking_id=item.id) }}" class="inline-form">
+                    <select name="status">
+                        {% for status in statuses %}
+                            <option value="{{ status }}" {% if item.status == status %}selected{% endif %}>{{ status }}</option>
+                        {% endfor %}
+                    </select>
+                    <button class="button admin-btn" type="submit">Сменить статус</button>
+                </form>
+                <form method="post" action="{{ url_for('main.admin_booking_delete', booking_id=item.id) }}">
+                    <button class="button admin-btn danger" type="submit">Удалить</button>
+                </form>
+            </div>
+        </article>
+    {% else %}
+        <p>Бронирований нет.</p>
+    {% endfor %}
+</section>
+{% endblock %}

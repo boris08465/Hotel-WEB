@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Вход{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url_for('main.index') }}">Назад</a>
+<section class="form-shell auth-shell">
+    <h1>Вход</h1>
+    <form method="post" class="form">
+        <label>Почта/номер телефона <input name="login" required></label>
+        <label>Пароль <input type="password" name="password" required></label>
+        <button class="button primary" type="submit">Войти</button>
+    </form>
+    <a class="muted-link" href="{{ url_for('main.register') }}">Создать аккаунт</a>
+</section>
+{% endblock %}

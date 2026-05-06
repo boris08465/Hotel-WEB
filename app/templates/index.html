@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Гостиница Космос{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<section class="hero">
+    <div class="home-top">
+        <a class="home-logo" href="{{ url_for('main.index') }}">ГКоС</a>
+        <div class="home-login">
+            {% if current_user %}
+                <a href="{{ url_for('main.profile') }}">Личный кабинет ({{ current_user.name }})</a>
+            {% else %}
+                <a href="{{ url_for('main.login') }}">Вход</a>
+                <a href="{{ url_for('main.register') }}">Регистрация</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="hero-inner">
+        <h1>Гостиница "Космос"</h1>
+        <div class="actions">
+            <a class="button primary" href="{{ url_for('main.booking') }}">Забронировать</a>
+            <a class="button primary" href="#contacts">Связаться с нами</a>
+        </div>
+        <div class="home-rooms">
+            <a href="{{ url_for('main.booking') }}"><img src="{{ url_for('static', filename='images/design/home_room_1.jpg') }}" alt="Номер"><span>Забронировать номер</span></a>
+            <a href="{{ url_for('main.booking') }}"><img src="{{ url_for('static', filename='images/design/home_room_2.jpg') }}" alt="Номер"><span>Забронировать номер</span></a>
+            <a href="{{ url_for('main.booking') }}"><img src="{{ url_for('static', filename='images/design/home_room_3.jpg') }}" alt="Номер"><span>Забронировать номер</span></a>
+        </div>
+    </div>
+</section>
+
+<section class="about-section">
+    <h2>О нас</h2>
+    <p>Та самая легендарная гостиница. Лучше нас может быть разве что Ритц в центре Парижа. Невероятные виды на Кремль и красную площадь.</p>
+    <p>Гостиница "Космос" - это сочетание архитектуры и комфорта. Мы создаем пространство, где продумана каждая деталь: от функционала номеров до удобной системы бронирования.</p>
+    <p>Наш подход основан на простоте, надежности и внимании к гостям. Мы ценим точность в сервисе, прозрачность условий и комфорт.</p>
+    <p>Отель расположен в самом центре города, что позволяет стоять в пробках по вечерам и использовать метро для того, чтобы вовремя успеть на деловую встречу.</p>
+    <p>Мы работаем для тех, кто ценит порядок, качество, современный уровень сервиса и высокие цены.</p>
+</section>
+
+<footer class="home-footer" id="contacts">
+    <div class="footer-top">
+        <div class="footer-legal">
+            <p>Правовая информация</p>
+            <p>Политика обработки персональных данных</p>
+            <p>Вакансии</p>
+        </div>
+        <div class="footer-user-links">
+            {% if current_user %}
+                <p><a href="{{ url_for('main.profile') }}">Личный кабинет</a></p>
+            {% else %}
+                <p><a href="{{ url_for('main.login') }}">Вход</a></p>
+                <p><a href="{{ url_for('main.register') }}">Регистрация</a></p>
+            {% endif %}
+            <p><a href="#contacts">Как нас найти?</a></p>
+        </div>
+    </div>
+    <div class="footer-contacts-line">
+        <span>ООО "Космос"</span>
+        <span>8 (900) 111-22-33</span>
+        <span>kosmos@kosmos.ru</span>
+    </div>
+</footer>
+<script src="{{ url_for('static', filename='js/home-cards.js') }}"></script>
+{% endblock %}

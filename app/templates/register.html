@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Регистрация{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url_for('main.index') }}">Назад</a>
+<section class="form-shell register-shell">
+    <h1>Регистрация</h1>
+    <form method="post" class="form register-form">
+        <label>Имя* <input name="name" required></label>
+        <label>Фамилия* <input name="surname" required></label>
+        <label>Отчество (если есть) <input name="patronymic"></label>
+        <label>Номер телефона* <input name="phone" required></label>
+        <label>Почта* <input type="email" name="email" required></label>
+        <label>Номер паспорта* <input name="passport_number" required maxlength="6"></label>
+        <label>Серия паспорта* <input name="passport_series" required maxlength="4"></label>
+        <label>Пароль* <input type="password" name="password" required></label>
+        <label>Подтверждение пароля* <input type="password" name="password_confirm" required></label>
+        <button class="button primary" type="submit">Создать аккаунт</button>
+    </form>
+    <a class="muted-link" href="{{ url_for('main.login') }}">Уже есть аккаунт</a>
+    <p class="note">"*" - обязательные для заполнения поля</p>
+</section>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Пользователи{% endblock %}
+{% block content %}
+<section class="page-head"><h1>Пользователи</h1></section>
+<section class="table-wrap">
+    <table>
+        <thead><tr><th>ID</th><th>ФИО</th><th>Email</th><th>Телефон</th><th>Паспорт</th><th>Роль</th><th>Создан</th></tr></thead>
+        <tbody>
+            {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.surname }} {{ user.name }} {{ user.patronymic }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.phone }}</td>
+                    <td>{{ user.passport_series }} {{ user.passport_number }}</td>
+                    <td>{{ user.role }}</td>
+                    <td>{{ user.created_at }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

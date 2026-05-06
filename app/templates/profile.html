@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Личный кабинет{% endblock %}
+{% block content %}
+<section class="page-head">
+    <h1>Личный кабинет</h1>
+</section>
+<section class="profile-card">
+    <p>Фамилия: {{ user.surname }}</p>
+    <p>Имя: {{ user.name }}</p>
+    <p>Отчество: {{ user.patronymic or '' }}</p>
+    <p>Почта: {{ user.email }}</p>
+    <p>Номер телефона: {{ user.phone }}</p>
+    <a class="button" href="{{ url_for('main.settings') }}">Настройки</a>
+</section>
+<div class="center-actions">
+    <a class="button" href="{{ url_for('main.logout') }}">Выйти</a>
+</div>
+{% endblock %}

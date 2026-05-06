@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Админ-панель{% endblock %}
+{% block content %}
+<section class="page-head">
+    <h1>Административная панель</h1>
+    <form method="post" action="{{ url_for('main.admin_import') }}">
+        <button class="button primary" type="submit">Импортировать data/import_data.pkl</button>
+    </form>
+</section>
+<section class="content-grid">
+    <a class="button" href="{{ url_for('main.admin_users') }}">Все пользователи</a>
+    <a class="button" href="{{ url_for('main.admin_bookings') }}">Все бронирования</a>
+</section>
+<section class="table-wrap">
+    <h2>Последние бронирования</h2>
+    <table>
+        <thead><tr><th>ID</th><th>Пользователь</th><th>Номер</th><th>Даты</th><th>Статус</th></tr></thead>
+        <tbody>
+            {% for item in bookings[:10] %}
+                <tr><td>{{ item.id }}</td><td>{{ item.surname }} {{ item.name }}</td><td>{{ item.room_type }}</td><td>{{ item.check_in }} - {{ item.check_out }}</td><td>{{ item.status }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

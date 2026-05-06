@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Мои бронирования{% endblock %}
+{% block content %}
+<section class="page-head">
+    <h1>Мои бронирования</h1>
+</section>
+
+{% set active_bookings = bookings | rejectattr('status', 'in', ['Отменено', 'Прошедшее']) | list %}
+{% set archived_bookings = bookings | selectattr('status', 'in', ['Отменено', 'Прошедшее']) | list %}
+
+<section class="booking-list">
+    {% for item in active_bookings %}
+        <article class="booking-row">
+            <img src="{{ url_for('static', filename='images/design/' ~ ('room_standard.jpg' if item.room_type == 'Стандарт' else 'room_comfort.jpg' if item.room_type == 'Комфорт' else 'room_luxe.jpg')) }}" alt="{{ item.room_type }}">
+            <div class="booking-info">
+                <p>Дата заезда: {{ item.check_in }}</p>
+                <p>Дата выезда: {{ item.check_out }}</p>
+                <p>Кол-во взрослых: {{ item.adults }}</p>
+                <p>Кол-во детей: {{ item.children }}</p>
+            </div>
+            <div class="booking-side">
+                <p>Стоимость: {{ "{:,}".format(item.price).replace(",", ".") }} рублей</p>
+                {% if item.status == 'Новая' %}
+                    <a class="button small" href="{{ url_for('main.payment', booking_id=item.id) }}">Оплатить бронирование</a>
+                    <form method="post" action="{{ url_for('main.cancel', booking_id=item.id) }}">
+                        <button class="button small" type="submit">Отменить бронирование</button>
+                    </form>
+                {% elif item.status == 'Оплачено' %}
+                    <span class="status">Оплачено</span>
+                {% elif item.status == 'Отменено' %}
+                    <span class="status">Бронирование отменено</span>
+                {% else %}
+                    <span class="status">Прошедшее бронирование</span>
+                {% endif %}
+            </div>
+        </article>
+    {% endfor %}
+
+    {% if not active_bookings %}
+        <p class="empty-state">Актуальных бронирований нет.</p>
+    {% endif %}
+</section>
+
+<h2 class="subhead">Прошедшие и отмененные</h2>
+<section class="booking-list">
+    {% for item in archived_bookings %}
+        <article class="booking-row">
+            <img src="{{ url_for('static', filename='images/design/' ~ ('room_standard.jpg' if item.room_type == 'Стандарт' else 'room_comfort.jpg' if item.room_type == 'Комфорт' else 'room_luxe.jpg')) }}" alt="{{ item.room_type }}">
+            <div class="booking-info">
+                <p>Дата заезда: {{ item.check_in }}</p>
+                <p>Дата выезда: {{ item.check_out }}</p>
+                <p>Кол-во взрослых: {{ item.adults }}</p>
+                <p>Кол-во детей: {{ item.children }}</p>
+            </div>
+            <div class="booking-side">
+                <p>Стоимость: {{ "{:,}".format(item.price).replace(",", ".") }} рублей</p>
+                {% if item.status == 'Отменено' %}
+                    <span class="status">Бронирование отменено</span>
+                {% else %}
+                    <span class="status">Прошедшее бронирование</span>
+                {% endif %}
+            </div>
+        </article>
+    {% endfor %}
+
+    {% if not archived_bookings %}
+        <p class="empty-state">Прошедших и отмененных бронирований нет.</p>
+    {% endif %}
+</section>
+{% endblock %}

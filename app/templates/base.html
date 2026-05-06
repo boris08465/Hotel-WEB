@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Гостиница Космос{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% block header %}
+    <header class="site-header">
+        <nav class="nav">
+            <a href="{{ url_for('main.index') }}" class="{% if request.path == url_for('main.index') %}active{% endif %}">Главная</a>
+            <a href="{{ url_for('main.booking') }}" class="{% if request.path == url_for('main.booking') %}active{% endif %}">Бронирование</a>
+            {% if current_user %}
+                <a href="{{ url_for('main.my_bookings') }}" class="{% if request.path.startswith(url_for('main.my_bookings')) %}active{% endif %}">Мои бронирования</a>
+                <a href="{{ url_for('main.profile') }}" class="{% if request.path.startswith(url_for('main.profile')) or request.path.startswith(url_for('main.settings')) %}active{% endif %}">Личный кабинет</a>
+                {% if current_user.role == 'admin' %}
+                    <a href="{{ url_for('main.admin') }}" class="{% if request.path.startswith('/admin') %}active{% endif %}">Админ</a>
+                {% endif %}
+            {% else %}
+                <a href="{{ url_for('main.login') }}" class="{% if request.path.startswith(url_for('main.login')) %}active{% endif %}">Вход</a>
+                <a href="{{ url_for('main.register') }}" class="{% if request.path.startswith(url_for('main.register')) %}active{% endif %}">Регистрация</a>
+            {% endif %}
+        </nav>
+    </header>
+    {% endblock %}
+
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <section class="messages">
+                    {% for category, message in messages %}
+                        <div class="message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </section>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>
