@@ -62,8 +62,12 @@ class AdminConsole:
 
     def login(self):
         print("Авторизация администратора")
-        login = input("Логин (email/телефон): ").strip()
-        password = getpass("Пароль: ")
+        login = ""
+        while not login:
+            login = input("Логин (email/телефон): ").strip()
+            if not login:
+                print("Логин не может быть пустым.")
+        password = self._read_password()
         response, payload = self._request(
             "POST",
             "/api/auth/login",
@@ -79,6 +83,16 @@ class AdminConsole:
             return False
         print(f"Вход выполнен: {payload['user']['name']}")
         return True
+
+    def _read_password(self):
+        # In some IDE terminals getpass prompt is not visible; fallback to regular input.
+        try:
+            print("Введите пароль (символы могут не отображаться):", flush=True)
+            return getpass("Пароль: ")
+        except (EOFError, KeyboardInterrupt):
+            raise
+        except Exception:
+            return input("Пароль (видимый ввод): ").strip()
 
     def logout(self):
         self._request("POST", "/api/auth/logout", json={})
