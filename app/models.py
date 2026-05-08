@@ -1,5 +1,6 @@
 from datetime import date, datetime
 
+from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .db import get_db
@@ -13,6 +14,19 @@ ROOM_PRICES = {
 
 BOOKING_STATUSES = ("Новая", "Оплачено", "Отменено", "Прошедшее")
 PAYMENT_METHODS = ("Оплата при заселении", "СБП", "Банковская карта")
+
+
+class LoginUser(UserMixin):
+    def __init__(self, row):
+        self.id = row["id"]
+        self.role = row["role"]
+        self.name = row["name"]
+        self.email = row["email"]
+
+
+def get_login_user(user_id):
+    row = get_user(user_id)
+    return LoginUser(row) if row else None
 
 
 def now_text():

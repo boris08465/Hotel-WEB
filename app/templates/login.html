@@ -6,9 +6,16 @@
 <section class="form-shell auth-shell">
     <h1>Вход</h1>
     <form method="post" class="form">
-        <label>Почта/номер телефона <input name="login" required></label>
-        <label>Пароль <input type="password" name="password" required></label>
-        <button class="button primary" type="submit">Войти</button>
+        {{ form.hidden_tag() }}
+        <label>Почта/номер телефона
+            <input name="login" required value="{{ form.login.data or '' }}" class="{% if form.login.errors %}is-invalid{% endif %}">
+            {% for err in form.login.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+        </label>
+        <label>Пароль
+            <input type="password" name="password" required class="{% if form.password.errors %}is-invalid{% endif %}">
+            {% for err in form.password.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+        </label>
+        <button class="button primary" type="submit">{{ form.submit.label.text }}</button>
     </form>
     <a class="muted-link" href="{{ url_for('main.register') }}">Создать аккаунт</a>
 </section>

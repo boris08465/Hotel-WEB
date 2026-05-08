@@ -1,7 +1,7 @@
 import pickle
-import sqlite3
 from functools import wraps
 
+from flask_login import current_user, login_required, login_user, logout_user
 from flask import (
     Blueprint,
     current_app,
@@ -9,14 +9,25 @@ from flask import (
     redirect,
     render_template,
     request,
-    session,
     url_for,
 )
-from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.security import generate_password_hash
 
 from .db import get_db
+from .forms import (
+    AdminBookingEditForm,
+    AdminBookingStatusForm,
+    AdminImportForm,
+    BookingForm,
+    CancelBookingForm,
+    LoginForm,
+    PaymentForm,
+    RegisterForm,
+    SettingsForm,
+)
 from .models import (
     BOOKING_STATUSES,
+    LoginUser,
     PAYMENT_METHODS,
     ROOM_PRICES,
     admin_delete_booking,
@@ -34,46 +45,26 @@ from .models import (
     now_text,
     pay_booking,
     update_user,
-    verify_user,
 )
 
 bp = Blueprint("main", __name__)
 
 
-@bp.app_context_processor
-def inject_user():
-    user = get_user(session["user_id"]) if session.get("user_id") else None
-    return {"current_user": user}
-
-
-def login_required(view):
-    @wraps(view)
-    def wrapped(*args, **kwargs):
-        if not session.get("user_id"):
-            flash("Войдите в систему, чтобы продолжить.", "error")
-            return redirect(url_for("main.login"))
-        return view(*args, **kwargs)
-
-    return wrapped
+def flash_form_errors(form):
+    for errors in form.errors.values():
+        for error in errors:
+            flash(error, "error")
 
 
 def admin_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
-        user = get_user(session.get("user_id")) if session.get("user_id") else None
-        if not user or user["role"] != "admin":
+        if not current_user.is_authenticated or current_user.role != "admin":
             flash("Административный раздел доступен только администратору.", "error")
             return redirect(url_for("main.index"))
         return view(*args, **kwargs)
 
     return wrapped
-
-
-def required_fields(form, fields):
-    missing = [label for name, label in fields if not form.get(name, "").strip()]
-    if missing:
-        return "Заполните обязательные поля: " + ", ".join(missing) + "."
-    return None
 
 
 @bp.route("/")
@@ -83,54 +74,31 @@ def index():
 
 @bp.route("/register", methods=("GET", "POST"))
 def register():
-    if request.method == "POST":
-        error = required_fields(
-            request.form,
-            (
-                ("surname", "фамилия"),
-                ("name", "имя"),
-                ("phone", "телефон"),
-                ("email", "email"),
-                ("passport_series", "серия паспорта"),
-                ("passport_number", "номер паспорта"),
-                ("password", "пароль"),
-                ("password_confirm", "подтверждение пароля"),
-            ),
-        )
-        if not error and request.form["password"] != request.form["password_confirm"]:
-            error = "Пароль и подтверждение пароля не совпадают."
-        if error:
-            flash(error, "error")
-            return render_template("register.html")
-
-        try:
-            create_user(request.form)
-        except sqlite3.IntegrityError:
-            flash("Пользователь с таким email уже зарегистрирован.", "error")
-            return render_template("register.html")
-
+    form = RegisterForm()
+    if form.validate_on_submit():
+        create_user(form.data)
         flash("Регистрация завершена. Теперь можно войти.", "success")
         return redirect(url_for("main.login"))
-    return render_template("register.html")
+    if form.is_submitted() and form.errors:
+        flash("Проверьте корректность заполнения формы.", "error")
+    return render_template("register.html", form=form)
 
 
 @bp.route("/login", methods=("GET", "POST"))
 def login():
-    if request.method == "POST":
-        user = verify_user(request.form.get("login", ""), request.form.get("password", ""))
-        if not user:
-            flash("Неверный логин или пароль.", "error")
-            return render_template("login.html")
-        session.clear()
-        session["user_id"] = user["id"]
+    form = LoginForm()
+    if form.validate_on_submit():
+        login_user(LoginUser(form.user))
         flash("Вы вошли в личный кабинет.", "success")
         return redirect(url_for("main.profile"))
-    return render_template("login.html")
+    if form.is_submitted() and form.errors:
+        flash("Проверьте корректность заполнения формы.", "error")
+    return render_template("login.html", form=form)
 
 
 @bp.route("/logout")
 def logout():
-    session.clear()
+    logout_user()
     flash("Вы вышли из системы.", "success")
     return redirect(url_for("main.index"))
 
@@ -138,82 +106,67 @@ def logout():
 @bp.route("/profile")
 @login_required
 def profile():
-    return render_template("profile.html", user=get_user(session["user_id"]))
+    return render_template("profile.html", user=get_user(current_user.id))
 
 
 @bp.route("/settings", methods=("GET", "POST"))
 @login_required
 def settings():
-    user = get_user(session["user_id"])
-    if request.method == "POST":
-        error = required_fields(
-            request.form,
-            (
-                ("surname", "фамилия"),
-                ("name", "имя"),
-                ("phone", "телефон"),
-                ("email", "email"),
-                ("passport_series", "серия паспорта"),
-                ("passport_number", "номер паспорта"),
-            ),
-        )
+    user = get_user(current_user.id)
+    form = SettingsForm(data=user)
+    form.current_user_id = current_user.id
+    form.current_password_hash = user["password_hash"]
+    if form.validate_on_submit():
         password_hash = None
-        new_password = request.form.get("password", "")
-        if not error and new_password:
-            if not check_password_hash(user["password_hash"], request.form.get("old_password", "")):
-                error = "Для смены пароля укажите верный старый пароль."
-            else:
-                password_hash = generate_password_hash(new_password)
-        if error:
-            flash(error, "error")
-            return render_template("settings.html", user=user)
-        try:
-            update_user(user["id"], request.form, password_hash)
-        except sqlite3.IntegrityError:
-            flash("Этот email уже используется другим пользователем.", "error")
-            return render_template("settings.html", user=user)
+        if form.password.data:
+            password_hash = generate_password_hash(form.password.data)
+        update_user(user["id"], form.data, password_hash)
         flash("Настройки профиля сохранены.", "success")
         return redirect(url_for("main.profile"))
-    return render_template("settings.html", user=user)
+    if form.is_submitted() and form.errors:
+        flash("Проверьте корректность заполнения формы.", "error")
+    return render_template("settings.html", user=user, form=form)
 
 
 @bp.route("/booking", methods=("GET", "POST"))
 @login_required
 def booking():
-    if request.method == "POST":
-        error = required_fields(
-            request.form,
-            (
-                ("check_in", "дата заезда"),
-                ("check_out", "дата выезда"),
-                ("room_type", "тип номера"),
-                ("adults", "взрослые гости"),
-            ),
-        )
-        if error:
-            flash(error, "error")
-            return render_template("booking.html", room_prices=ROOM_PRICES)
+    form = BookingForm()
+    if form.validate_on_submit():
         try:
-            create_booking(session["user_id"], request.form)
+            payload = {
+                "check_in": form.check_in.data.isoformat(),
+                "check_out": form.check_out.data.isoformat(),
+                "room_type": form.room_type.data,
+                "adults": form.adults.data,
+                "children": form.children.data or 0,
+            }
+            create_booking(current_user.id, payload)
         except ValueError as exc:
             flash(str(exc), "error")
-            return render_template("booking.html", room_prices=ROOM_PRICES)
+            return render_template("booking.html", room_prices=ROOM_PRICES, form=form)
         flash("Бронирование создано.", "success")
         return redirect(url_for("main.my_bookings"))
-    return render_template("booking.html", room_prices=ROOM_PRICES)
+    if form.is_submitted() and form.errors:
+        flash("Проверьте корректность заполнения формы.", "error")
+    return render_template("booking.html", room_prices=ROOM_PRICES, form=form)
 
 
 @bp.route("/my-bookings")
 @login_required
 def my_bookings():
-    return render_template("my_bookings.html", bookings=get_user_bookings(session["user_id"]))
+    return render_template("my_bookings.html", bookings=get_user_bookings(current_user.id))
 
 
 @bp.route("/booking/<int:booking_id>/cancel", methods=("POST",))
 @login_required
 def cancel(booking_id):
+    form = CancelBookingForm()
+    if not form.validate_on_submit():
+        flash_form_errors(form)
+        return redirect(url_for("main.my_bookings"))
     try:
-        cancel_booking(booking_id, session["user_id"])
+        cancel_booking(booking_id, current_user.id)
         flash("Бронирование отменено.", "success")
     except (PermissionError, ValueError) as exc:
         flash(str(exc), "error")
@@ -223,7 +176,7 @@ def cancel(booking_id):
 @bp.route("/booking/<int:booking_id>/payment", methods=("GET", "POST"))
 @login_required
 def payment(booking_id):
-    booking_item = get_booking_for_user(booking_id, session["user_id"])
+    booking_item = get_booking_for_user(booking_id, current_user.id)
     if not booking_item:
         flash("Бронирование не найдено или недоступно.", "error")
         return redirect(url_for("main.my_bookings"))
@@ -231,29 +184,19 @@ def payment(booking_id):
         flash("Это бронирование нельзя оплатить.", "error")
         return redirect(url_for("main.my_bookings"))
 
-    if request.method == "POST":
-        method = request.form.get("payment_method", "")
-        if method == "Банковская карта":
-            error = required_fields(
-                request.form,
-                (
-                    ("card_number", "номер карты"),
-                    ("card_holder", "владелец карты"),
-                    ("card_expiry", "срок действия"),
-                    ("card_cvv", "CVV"),
-                ),
-            )
-            if error:
-                flash(error, "error")
-                return render_template("payment.html", booking=booking_item, payment_methods=PAYMENT_METHODS)
+    form = PaymentForm()
+    if form.validate_on_submit():
+        method = form.payment_method.data
         try:
             pay_booking(booking_item, method)
         except ValueError as exc:
             flash(str(exc), "error")
-            return render_template("payment.html", booking=booking_item, payment_methods=PAYMENT_METHODS)
+            return render_template("payment.html", booking=booking_item, payment_methods=PAYMENT_METHODS, form=form)
         flash("Оплата успешно зарегистрирована.", "success")
         return redirect(url_for("main.my_bookings"))
-    return render_template("payment.html", booking=booking_item, payment_methods=PAYMENT_METHODS)
+    if form.is_submitted() and form.errors:
+        flash("Проверьте корректность заполнения формы.", "error")
+    return render_template("payment.html", booking=booking_item, payment_methods=PAYMENT_METHODS, form=form)
 
 
 @bp.route("/admin")
@@ -285,8 +228,21 @@ def admin_bookings():
 @bp.route("/admin/booking/<int:booking_id>/edit", methods=("POST",))
 @admin_required
 def admin_booking_edit(booking_id):
+    form = AdminBookingEditForm()
+    if not form.validate_on_submit():
+        flash_form_errors(form)
+        return redirect(url_for("main.admin_bookings"))
     try:
-        admin_update_booking(booking_id, request.form)
+        payload = {
+            "check_in": form.check_in.data.isoformat(),
+            "check_out": form.check_out.data.isoformat(),
+            "adults": form.adults.data,
+            "children": form.children.data,
+            "room_type": form.room_type.data,
+            "status": form.status.data,
+            "payment_method": form.payment_method.data,
+        }
+        admin_update_booking(booking_id, payload)
         flash("Бронирование обновлено.", "success")
     except ValueError as exc:
         flash(str(exc), "error")
@@ -296,6 +252,10 @@ def admin_booking_edit(booking_id):
 @bp.route("/admin/booking/<int:booking_id>/delete", methods=("POST",))
 @admin_required
 def admin_booking_delete(booking_id):
+    form = CancelBookingForm()
+    if not form.validate_on_submit():
+        flash_form_errors(form)
+        return redirect(url_for("main.admin_bookings"))
     admin_delete_booking(booking_id)
     flash("Бронирование удалено.", "success")
     return redirect(url_for("main.admin_bookings"))
@@ -304,8 +264,12 @@ def admin_booking_delete(booking_id):
 @bp.route("/admin/booking/<int:booking_id>/status", methods=("POST",))
 @admin_required
 def admin_booking_status(booking_id):
+    form = AdminBookingStatusForm()
+    if not form.validate_on_submit():
+        flash_form_errors(form)
+        return redirect(url_for("main.admin_bookings"))
     try:
-        admin_set_status(booking_id, request.form.get("status", ""))
+        admin_set_status(booking_id, form.status.data)
         flash("Статус бронирования изменен.", "success")
     except ValueError as exc:
         flash(str(exc), "error")
@@ -315,6 +279,10 @@ def admin_booking_status(booking_id):
 @bp.route("/admin/import", methods=("POST",))
 @admin_required
 def admin_import():
+    form = AdminImportForm()
+    if not form.validate_on_submit():
+        flash_form_errors(form)
+        return redirect(url_for("main.admin"))
     message, category = import_pickle_data()
     flash(message, category)
     return redirect(url_for("main.admin"))

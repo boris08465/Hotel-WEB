@@ -4,16 +4,18 @@
 <section class="form-shell settings-shell">
     <h1>Настройки личного кабинета</h1>
     <form method="post" class="form settings-form">
-        <label>Имя <input name="name" value="{{ user.name }}" required></label>
-        <label>Фамилия <input name="surname" value="{{ user.surname }}" required></label>
-        <label>Отчество <input name="patronymic" value="{{ user.patronymic or '' }}"></label>
-        <label>Номер телефона <input name="phone" value="{{ user.phone }}" required></label>
-        <label>Почта <input type="email" name="email" value="{{ user.email }}" required></label>
-        <label>Номер паспорта <input name="passport_number" value="{{ user.passport_number }}" required></label>
-        <label>Серия паспорта <input name="passport_series" value="{{ user.passport_series }}" required></label>
-        <label>Старый пароль <input type="password" name="old_password"></label>
-        <label>Новый пароль <input type="password" name="password"></label>
-        <button class="button primary" type="submit">Сохранить</button>
+        {{ form.hidden_tag() }}
+        <label>Имя <input name="name" value="{{ form.name.data or '' }}" required class="{% if form.name.errors %}is-invalid{% endif %}">{% for err in form.name.errors %}<span class="field-error">{{ err }}</span>{% endfor %}</label>
+        <label>Фамилия <input name="surname" value="{{ form.surname.data or '' }}" required class="{% if form.surname.errors %}is-invalid{% endif %}">{% for err in form.surname.errors %}<span class="field-error">{{ err }}</span>{% endfor %}</label>
+        <label>Отчество <input name="patronymic" value="{{ form.patronymic.data or '' }}" class="{% if form.patronymic.errors %}is-invalid{% endif %}">{% for err in form.patronymic.errors %}<span class="field-error">{{ err }}</span>{% endfor %}</label>
+        <label>Номер телефона <input name="phone" value="{{ form.phone.data or '' }}" required class="{% if form.phone.errors %}is-invalid{% endif %}">{% for err in form.phone.errors %}<span class="field-error">{{ err }}</span>{% endfor %}</label>
+        <label>Почта <input type="email" name="email" value="{{ form.email.data or '' }}" required class="{% if form.email.errors %}is-invalid{% endif %}">{% for err in form.email.errors %}<span class="field-error">{{ err }}</span>{% endfor %}</label>
+        <label>Номер паспорта <input name="passport_number" value="{{ form.passport_number.data or '' }}" required class="{% if form.passport_number.errors %}is-invalid{% endif %}">{% for err in form.passport_number.errors %}<span class="field-error">{{ err }}</span>{% endfor %}</label>
+        <label>Серия паспорта <input name="passport_series" value="{{ form.passport_series.data or '' }}" required class="{% if form.passport_series.errors %}is-invalid{% endif %}">{% for err in form.passport_series.errors %}<span class="field-error">{{ err }}</span>{% endfor %}</label>
+        <label>Старый пароль <input type="password" name="old_password" class="{% if form.old_password.errors %}is-invalid{% endif %}">{% for err in form.old_password.errors %}<span class="field-error">{{ err }}</span>{% endfor %}</label>
+        <label>Новый пароль <input type="password" name="password" class="{% if form.password.errors %}is-invalid{% endif %}">{% for err in form.password.errors %}<span class="field-error">{{ err }}</span>{% endfor %}</label>
+        <label>Подтверждение нового пароля <input type="password" name="password_confirm" class="{% if form.password_confirm.errors %}is-invalid{% endif %}">{% for err in form.password_confirm.errors %}<span class="field-error">{{ err }}</span>{% endfor %}</label>
+        <button class="button primary" type="submit">{{ form.submit.label.text }}</button>
     </form>
 </section>
 {% endblock %}

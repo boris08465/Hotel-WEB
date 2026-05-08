@@ -4,6 +4,7 @@
 <section class="page-head">
     <h1>Административная панель</h1>
     <form method="post" action="{{ url_for('main.admin_import') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button class="button primary" type="submit">Импортировать data/import_data.pkl</button>
     </form>
 </section>

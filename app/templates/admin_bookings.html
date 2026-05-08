@@ -18,6 +18,7 @@
         <article class="booking-admin">
             <h2>#{{ item.id }} {{ item.surname }} {{ item.name }} — {{ item.email }}</h2>
             <form method="post" action="{{ url_for('main.admin_booking_edit', booking_id=item.id) }}" class="form admin-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <label>Заезд <input type="date" name="check_in" value="{{ item.check_in }}" required></label>
                 <label>Выезд <input type="date" name="check_out" value="{{ item.check_out }}" required></label>
                 <label>Взрослые <input type="number" name="adults" min="1" value="{{ item.adults }}" required></label>
@@ -48,6 +49,7 @@
             </form>
             <div class="admin-actions">
                 <form method="post" action="{{ url_for('main.admin_booking_status', booking_id=item.id) }}" class="inline-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <select name="status">
                         {% for status in statuses %}
                             <option value="{{ status }}" {% if item.status == status %}selected{% endif %}>{{ status }}</option>
@@ -56,6 +58,7 @@
                     <button class="button admin-btn" type="submit">Сменить статус</button>
                 </form>
                 <form method="post" action="{{ url_for('main.admin_booking_delete', booking_id=item.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button class="button admin-btn danger" type="submit">Удалить</button>
                 </form>
             </div>

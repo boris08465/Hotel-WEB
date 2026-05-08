@@ -4,30 +4,32 @@
 <section class="form-shell wide booking-shell">
     <h1>Бронирование</h1>
     <form method="post" class="booking-layout" id="booking-form">
+        {{ form.hidden_tag() }}
         <div class="room-picker">
             <label class="room-option">
-                <input type="radio" name="room_type" value="Стандарт" data-price="{{ room_prices['Стандарт'] }}" required>
+                <input type="radio" name="room_type" value="Стандарт" data-price="{{ room_prices['Стандарт'] }}" required {% if form.room_type.data == 'Стандарт' %}checked{% endif %} class="{% if form.room_type.errors %}is-invalid{% endif %}">
                 <img src="{{ url_for('static', filename='images/design/room_standard.jpg') }}" alt="Стандарт">
             </label>
             <label class="room-option">
-                <input type="radio" name="room_type" value="Комфорт" data-price="{{ room_prices['Комфорт'] }}">
+                <input type="radio" name="room_type" value="Комфорт" data-price="{{ room_prices['Комфорт'] }}" {% if form.room_type.data == 'Комфорт' %}checked{% endif %} class="{% if form.room_type.errors %}is-invalid{% endif %}">
                 <img src="{{ url_for('static', filename='images/design/room_comfort.jpg') }}" alt="Комфорт">
             </label>
             <label class="room-option">
-                <input type="radio" name="room_type" value="Люкс" data-price="{{ room_prices['Люкс'] }}">
+                <input type="radio" name="room_type" value="Люкс" data-price="{{ room_prices['Люкс'] }}" {% if form.room_type.data == 'Люкс' %}checked{% endif %} class="{% if form.room_type.errors %}is-invalid{% endif %}">
                 <img src="{{ url_for('static', filename='images/design/room_luxe.jpg') }}" alt="Люкс">
             </label>
         </div>
+        {% for err in form.room_type.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
         <div class="form booking-fields">
-            <label>Дата заезда: <input type="date" name="check_in" id="check_in" required></label>
-            <label>Дата выезда: <input type="date" name="check_out" id="check_out" required></label>
-            <label>Количество взрослых гостей: <input type="number" name="adults" min="1" value="1" required></label>
-            <label>Количество детей (до 14 лет): <input type="number" name="children" id="children" min="0" value="0"></label>
+            <label>Дата заезда: <input type="date" name="check_in" id="check_in" required value="{{ form.check_in.data.isoformat() if form.check_in.data else '' }}" class="{% if form.check_in.errors %}is-invalid{% endif %}">{% for err in form.check_in.errors %}<span class="field-error">{{ err }}</span>{% endfor %}</label>
+            <label>Дата выезда: <input type="date" name="check_out" id="check_out" required value="{{ form.check_out.data.isoformat() if form.check_out.data else '' }}" class="{% if form.check_out.errors %}is-invalid{% endif %}">{% for err in form.check_out.errors %}<span class="field-error">{{ err }}</span>{% endfor %}</label>
+            <label>Количество взрослых гостей: <input type="number" name="adults" min="1" value="{{ form.adults.data or 1 }}" required class="{% if form.adults.errors %}is-invalid{% endif %}">{% for err in form.adults.errors %}<span class="field-error">{{ err }}</span>{% endfor %}</label>
+            <label>Количество детей (до 14 лет): <input type="number" name="children" id="children" min="0" value="{{ form.children.data if form.children.data is not none else 0 }}" class="{% if form.children.errors %}is-invalid{% endif %}">{% for err in form.children.errors %}<span class="field-error">{{ err }}</span>{% endfor %}</label>
             <div class="summary">
                 <p>Дней проживания: <strong id="days">0</strong></p>
                 <p>Стоимость: <strong id="price">0</strong></p>
             </div>
-            <button class="button primary" type="submit">Забронировать</button>
+            <button class="button primary" type="submit">{{ form.submit.label.text }}</button>
         </div>
     </form>
 </section>

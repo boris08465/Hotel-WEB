@@ -6,7 +6,7 @@
     <div class="home-top">
         <a class="home-logo" href="{{ url_for('main.index') }}">ГКоС</a>
         <div class="home-login">
-            {% if current_user %}
+            {% if current_user.is_authenticated %}
                 <a href="{{ url_for('main.profile') }}">Личный кабинет ({{ current_user.name }})</a>
             {% else %}
                 <a href="{{ url_for('main.login') }}">Вход</a>
@@ -45,7 +45,7 @@
             <p>Вакансии</p>
         </div>
         <div class="footer-user-links">
-            {% if current_user %}
+            {% if current_user.is_authenticated %}
                 <p><a href="{{ url_for('main.profile') }}">Личный кабинет</a></p>
             {% else %}
                 <p><a href="{{ url_for('main.login') }}">Вход</a></p>

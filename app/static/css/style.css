@@ -162,6 +162,19 @@ select {
     font: 16px Arial, Helvetica, sans-serif;
 }
 
+input.is-invalid,
+select.is-invalid {
+    border-color: #e8aaa4;
+    box-shadow: 0 0 0 2px rgba(232, 170, 164, 0.22);
+}
+
+.field-error {
+    margin-top: 2px;
+    color: #ffd4cf;
+    font-size: 13px;
+    font-weight: 400;
+}
+
 label {
     display: grid;
     gap: 3px;

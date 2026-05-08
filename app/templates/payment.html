@@ -6,21 +6,23 @@
     <h1>Оплата</h1>
     <p class="payment-sum">Сумма: {{ "{:,}".format(booking.price).replace(",", ".") }} рублей</p>
     <form method="post" class="payment-layout" id="payment-form">
+        {{ form.hidden_tag() }}
         <div>
             <h2>Выбор способа оплаты</h2>
             <div class="payment-methods">
                 {% for method in payment_methods %}
-                    <label><input type="radio" name="payment_method" value="{{ method }}" required> {{ method }}</label>
+                    <label><input type="radio" name="payment_method" value="{{ method }}" required {% if form.payment_method.data == method %}checked{% endif %} class="{% if form.payment_method.errors %}is-invalid{% endif %}"> {{ method }}</label>
                 {% endfor %}
             </div>
+            {% for err in form.payment_method.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
         </div>
         <div id="card-fields" class="card-fields visible">
-            <label>Номер карты <input name="card_number" inputmode="numeric" autocomplete="off"></label>
-            <label>Владелец карты <input name="card_holder" autocomplete="off"></label>
-            <label>Срок действия <input name="card_expiry" placeholder="MM/YY" autocomplete="off"></label>
-            <label>CVV <input name="card_cvv" inputmode="numeric" autocomplete="off"></label>
+            <label>Номер карты <input name="card_number" inputmode="numeric" autocomplete="off" value="{{ form.card_number.data or '' }}" class="{% if form.card_number.errors %}is-invalid{% endif %}">{% for err in form.card_number.errors %}<span class="field-error">{{ err }}</span>{% endfor %}</label>
+            <label>Владелец карты <input name="card_holder" autocomplete="off" value="{{ form.card_holder.data or '' }}" class="{% if form.card_holder.errors %}is-invalid{% endif %}">{% for err in form.card_holder.errors %}<span class="field-error">{{ err }}</span>{% endfor %}</label>
+            <label>Срок действия <input name="card_expiry" placeholder="MM/YY" autocomplete="off" value="{{ form.card_expiry.data or '' }}" class="{% if form.card_expiry.errors %}is-invalid{% endif %}">{% for err in form.card_expiry.errors %}<span class="field-error">{{ err }}</span>{% endfor %}</label>
+            <label>CVV <input name="card_cvv" inputmode="numeric" autocomplete="off" value="{{ form.card_cvv.data or '' }}" class="{% if form.card_cvv.errors %}is-invalid{% endif %}">{% for err in form.card_cvv.errors %}<span class="field-error">{{ err }}</span>{% endfor %}</label>
         </div>
-        <button class="button primary" type="submit">Оплатить бронирование</button>
+        <button class="button primary" type="submit">{{ form.submit.label.text }}</button>
     </form>
 </section>
 <script src="{{ url_for('static', filename='js/payment.js') }}"></script>

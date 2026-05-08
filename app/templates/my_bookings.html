@@ -23,6 +23,7 @@
                 {% if item.status == 'Новая' %}
                     <a class="button small" href="{{ url_for('main.payment', booking_id=item.id) }}">Оплатить бронирование</a>
                     <form method="post" action="{{ url_for('main.cancel', booking_id=item.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button class="button small" type="submit">Отменить бронирование</button>
                     </form>
                 {% elif item.status == 'Оплачено' %}
