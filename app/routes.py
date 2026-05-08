@@ -6,6 +6,7 @@ from flask import (
     Blueprint,
     current_app,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -14,6 +15,7 @@ from flask import (
 from werkzeug.security import generate_password_hash
 
 from .db import get_db
+from . import csrf
 from .forms import (
     AdminBookingEditForm,
     AdminBookingStatusForm,
@@ -45,6 +47,7 @@ from .models import (
     now_text,
     pay_booking,
     update_user,
+    verify_user,
 )
 
 bp = Blueprint("main", __name__)
@@ -54,6 +57,33 @@ def flash_form_errors(form):
     for errors in form.errors.values():
         for error in errors:
             flash(error, "error")
+
+
+def _row_to_dict(row):
+    if row is None:
+        return None
+    return {key: row[key] for key in row.keys()}
+
+
+def api_login_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return jsonify({"error": "auth_required"}), 401
+        return view(*args, **kwargs)
+
+    return wrapped
+
+
+def api_admin_required(view):
+    @wraps(view)
+    @api_login_required
+    def wrapped(*args, **kwargs):
+        if current_user.role != "admin":
+            return jsonify({"error": "admin_required"}), 403
+        return view(*args, **kwargs)
+
+    return wrapped
 
 
 def admin_required(view):
@@ -70,6 +100,95 @@ def admin_required(view):
 @bp.route("/")
 def index():
     return render_template("index.html")
+
+
+@bp.route("/api/auth/login", methods=("POST",))
+@csrf.exempt
+def api_login():
+    payload = request.get_json(silent=True) or {}
+    login_value = str(payload.get("login", "")).strip()
+    password = str(payload.get("password", ""))
+    user = verify_user(login_value, password)
+    if not user:
+        return jsonify({"error": "invalid_credentials"}), 401
+    login_user(LoginUser(user))
+    return jsonify({"ok": True, "user": {"id": user["id"], "name": user["name"], "role": user["role"]}})
+
+
+@bp.route("/api/auth/logout", methods=("POST",))
+@csrf.exempt
+@api_login_required
+def api_logout():
+    logout_user()
+    return jsonify({"ok": True})
+
+
+@bp.route("/api/admin/users", methods=("GET",))
+@api_admin_required
+def api_admin_users():
+    return jsonify({"items": [_row_to_dict(item) for item in all_users()]})
+
+
+@bp.route("/api/admin/bookings", methods=("GET",))
+@api_admin_required
+def api_admin_bookings():
+    status = request.args.get("status") or None
+    return jsonify({"items": [_row_to_dict(item) for item in all_bookings(status)]})
+
+
+@bp.route("/api/admin/bookings/<int:booking_id>", methods=("PUT",))
+@csrf.exempt
+@api_admin_required
+def api_admin_booking_edit(booking_id):
+    payload = request.get_json(silent=True) or {}
+    try:
+        normalized = {
+            "check_in": str(payload.get("check_in", "")),
+            "check_out": str(payload.get("check_out", "")),
+            "adults": int(payload.get("adults", 1)),
+            "children": int(payload.get("children", 0)),
+            "room_type": str(payload.get("room_type", "")),
+            "status": str(payload.get("status", "")),
+            "payment_method": payload.get("payment_method") or None,
+        }
+    except (TypeError, ValueError):
+        return jsonify({"error": "invalid_payload"}), 400
+    try:
+        admin_update_booking(booking_id, normalized)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify({"ok": True, "booking": _row_to_dict(get_booking(booking_id))})
+
+
+@bp.route("/api/admin/bookings/<int:booking_id>/status", methods=("PATCH",))
+@csrf.exempt
+@api_admin_required
+def api_admin_booking_status(booking_id):
+    payload = request.get_json(silent=True) or {}
+    status = str(payload.get("status", ""))
+    try:
+        admin_set_status(booking_id, status)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify({"ok": True, "booking": _row_to_dict(get_booking(booking_id))})
+
+
+@bp.route("/api/admin/bookings/<int:booking_id>", methods=("DELETE",))
+@csrf.exempt
+@api_admin_required
+def api_admin_booking_delete(booking_id):
+    admin_delete_booking(booking_id)
+    return jsonify({"ok": True})
+
+
+@bp.route("/api/admin/import", methods=("POST",))
+@csrf.exempt
+@api_admin_required
+def api_admin_import():
+    message, category = import_pickle_data()
+    ok = category == "success"
+    status = 200 if ok else 400
+    return jsonify({"ok": ok, "category": category, "message": message}), status
 
 
 @bp.route("/register", methods=("GET", "POST"))

@@ -5,7 +5,6 @@ from flask_wtf.csrf import CSRFProtect
 from config import Config
 from .db import close_db, init_db
 from .models import get_login_user
-from .routes import bp
 
 csrf = CSRFProtect()
 login_manager = LoginManager()
@@ -27,6 +26,8 @@ def create_app(config_object=Config):
     login_manager.login_view = "main.login"
     login_manager.login_message = "Войдите в систему, чтобы продолжить."
     login_manager.login_message_category = "error"
+
+    from .routes import bp
 
     app.teardown_appcontext(close_db)
     app.register_blueprint(bp)
