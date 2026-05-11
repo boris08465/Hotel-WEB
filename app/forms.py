@@ -180,6 +180,40 @@ class AdminImportForm(FlaskForm):
     submit = SubmitField("Импортировать")
 
 
+class AdminExportForm(FlaskForm):
+    submit = SubmitField("Save")
+
+
+class AdminCreateBookingForm(FlaskForm):
+    user_id = IntegerField("ID пользователя", validators=[DataRequired(), NumberRange(min=1)])
+    room_type = SelectField(
+        "Номер",
+        choices=[(room_type, room_type) for room_type in ROOM_PRICES],
+        validators=[DataRequired()],
+    )
+    check_in = DateField("Заезд", format="%Y-%m-%d", validators=[DataRequired()])
+    check_out = DateField("Выезд", format="%Y-%m-%d", validators=[DataRequired()])
+    adults = IntegerField("Взрослые", validators=[DataRequired(), NumberRange(min=1)])
+    children = IntegerField("Дети", validators=[DataRequired(), NumberRange(min=0)])
+    status = SelectField("Статус", validators=[DataRequired()])
+    payment_method = SelectField("Способ оплаты", validators=[Optional()])
+    submit = SubmitField("Создать бронирование")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.status.choices = [(status, status) for status in BOOKING_STATUSES]
+        self.payment_method.choices = [("", "Не выбрано")] + [(method, method) for method in PAYMENT_METHODS]
+
+    def validate_check_out(self, field):
+        if self.check_in.data and field.data and field.data <= self.check_in.data:
+            raise ValidationError("Дата выезда должна быть позже даты заезда.")
+
+    def validate_user_id(self, field):
+        exists = get_db().execute("SELECT 1 FROM users WHERE id = ?", (field.data,)).fetchone()
+        if not exists:
+            raise ValidationError("Пользователь с таким ID не найден.")
+
+
 class AdminBookingStatusForm(FlaskForm):
     status = SelectField(
         "Статус",

@@ -3,10 +3,16 @@
 {% block content %}
 <section class="page-head">
     <h1>Административная панель</h1>
-    <form method="post" action="{{ url_for('main.admin_import') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button class="button primary" type="submit">Импортировать data/import_data.pkl</button>
-    </form>
+    <div class="inline-form admin-actions">
+        <form method="post" action="{{ url_for('main.admin_import') }}">
+            {{ import_form.hidden_tag() }}
+            <button class="button primary" type="submit">Импортировать data/import_data.pkl</button>
+        </form>
+        <form method="post" action="{{ url_for('main.admin_export') }}">
+            {{ export_form.hidden_tag() }}
+            <button class="button" type="submit">Сохранить в data/export_data.pkl</button>
+        </form>
+    </div>
 </section>
 <section class="content-grid">
     <a class="button" href="{{ url_for('main.admin_users') }}">Все пользователи</a>

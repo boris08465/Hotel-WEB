@@ -21,6 +21,7 @@ python wsgi.py
 - `PATCH /api/admin/bookings/<id>/status`
 - `DELETE /api/admin/bookings/<id>`
 - `POST /api/admin/import`
+- `POST /api/admin/export`
 
 ## Администратор
 

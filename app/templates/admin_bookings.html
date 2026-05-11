@@ -13,6 +13,42 @@
         <button class="button admin-btn" type="submit">Фильтр</button>
     </form>
 </section>
+
+<section class="booking-admin">
+    <h2>Создать бронирование</h2>
+    <form method="post" action="{{ url_for('main.admin_booking_create') }}" class="form admin-form" novalidate>
+        {{ create_form.hidden_tag() }}
+        <label>ID пользователя <input type="number" name="user_id" min="1" required></label>
+        <label>Номер
+            <select name="room_type">
+                {% for room in room_prices %}
+                    <option value="{{ room }}">{{ room }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Заезд <input type="date" name="check_in" required></label>
+        <label>Выезд <input type="date" name="check_out" required></label>
+        <label>Взрослые <input type="number" name="adults" min="1" value="1" required></label>
+        <label>Дети <input type="number" name="children" min="0" value="0" required></label>
+        <label>Статус
+            <select name="status">
+                {% for status in statuses %}
+                    <option value="{{ status }}">{{ status }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Способ оплаты
+            <select name="payment_method">
+                <option value="">Не выбрано</option>
+                {% for method in payment_methods %}
+                    <option value="{{ method }}">{{ method }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button class="button primary admin-btn" type="submit">Создать</button>
+    </form>
+</section>
+
 <section class="admin-list admin-bookings-list">
     {% for item in bookings %}
         <article class="booking-admin">

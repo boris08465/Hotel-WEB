@@ -2,6 +2,51 @@
 {% block title %}Пользователи{% endblock %}
 {% block content %}
 <section class="page-head"><h1>Пользователи</h1></section>
+
+<section class="booking-admin">
+    <h2>Создать пользователя</h2>
+    <form method="post" action="{{ url_for('main.admin_user_create') }}" class="form admin-form" novalidate>
+        {{ create_form.hidden_tag() }}
+        <label>Фамилия
+            {{ create_form.surname(class_="is-invalid" if create_form.surname.errors else "") }}
+            {% for err in create_form.surname.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+        </label>
+        <label>Имя
+            {{ create_form.name(class_="is-invalid" if create_form.name.errors else "") }}
+            {% for err in create_form.name.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+        </label>
+        <label>Отчество
+            {{ create_form.patronymic(class_="is-invalid" if create_form.patronymic.errors else "") }}
+            {% for err in create_form.patronymic.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+        </label>
+        <label>Почта
+            {{ create_form.email(class_="is-invalid" if create_form.email.errors else "") }}
+            {% for err in create_form.email.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+        </label>
+        <label>Телефон
+            {{ create_form.phone(class_="is-invalid" if create_form.phone.errors else "") }}
+            {% for err in create_form.phone.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+        </label>
+        <label>Серия паспорта
+            {{ create_form.passport_series(class_="is-invalid" if create_form.passport_series.errors else "") }}
+            {% for err in create_form.passport_series.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+        </label>
+        <label>Номер паспорта
+            {{ create_form.passport_number(class_="is-invalid" if create_form.passport_number.errors else "") }}
+            {% for err in create_form.passport_number.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+        </label>
+        <label>Пароль
+            {{ create_form.password(class_="is-invalid" if create_form.password.errors else "") }}
+            {% for err in create_form.password.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+        </label>
+        <label>Подтверждение пароля
+            {{ create_form.password_confirm(class_="is-invalid" if create_form.password_confirm.errors else "") }}
+            {% for err in create_form.password_confirm.errors %}<span class="field-error">{{ err }}</span>{% endfor %}
+        </label>
+        <button class="button primary admin-btn" type="submit">Создать</button>
+    </form>
+</section>
+
 <section class="table-wrap">
     <table>
         <thead><tr><th>ID</th><th>ФИО</th><th>Email</th><th>Телефон</th><th>Паспорт</th><th>Роль</th><th>Создан</th></tr></thead>

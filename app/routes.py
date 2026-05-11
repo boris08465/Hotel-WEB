@@ -18,6 +18,8 @@ from .db import get_db
 from . import csrf
 from .forms import (
     AdminBookingEditForm,
+    AdminCreateBookingForm,
+    AdminExportForm,
     AdminBookingStatusForm,
     AdminImportForm,
     BookingForm,
@@ -123,6 +125,78 @@ def api_logout():
     return jsonify({"ok": True})
 
 
+@bp.route("/api/auth/register", methods=("POST",))
+@csrf.exempt
+def api_register():
+    payload = request.get_json(silent=True) or {}
+    data = {
+        "surname": str(payload.get("surname", "")).strip(),
+        "name": str(payload.get("name", "")).strip(),
+        "patronymic": str(payload.get("patronymic", "")).strip(),
+        "email": str(payload.get("email", "")).strip().lower(),
+        "phone": str(payload.get("phone", "")).strip(),
+        "passport_series": str(payload.get("passport_series", "")).strip(),
+        "passport_number": str(payload.get("passport_number", "")).strip(),
+        "password": str(payload.get("password", "")),
+        "password_confirm": str(payload.get("password_confirm", "")),
+    }
+    form = RegisterForm(meta={"csrf": False}, data=data)
+    if not form.validate():
+        return jsonify({"error": "validation_failed", "fields": form.errors}), 400
+    create_user(form.data)
+    return jsonify({"ok": True}), 201
+
+
+@bp.route("/api/bookings", methods=("GET",))
+@api_login_required
+def api_my_bookings():
+    if current_user.role == "admin":
+        return jsonify({"error": "user_only"}), 403
+    return jsonify({"items": [_row_to_dict(item) for item in get_user_bookings(current_user.id)]})
+
+
+@bp.route("/api/bookings", methods=("POST",))
+@csrf.exempt
+@api_login_required
+def api_create_booking():
+    if current_user.role == "admin":
+        return jsonify({"error": "user_only"}), 403
+    payload = request.get_json(silent=True) or {}
+    try:
+        normalized = {
+            "check_in": str(payload.get("check_in", "")),
+            "check_out": str(payload.get("check_out", "")),
+            "room_type": str(payload.get("room_type", "")),
+            "adults": int(payload.get("adults", 1)),
+            "children": int(payload.get("children", 0)),
+        }
+    except (TypeError, ValueError):
+        return jsonify({"error": "invalid_payload"}), 400
+    try:
+        create_booking(current_user.id, normalized)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify({"ok": True}), 201
+
+
+@bp.route("/api/bookings/<int:booking_id>/pay", methods=("POST",))
+@csrf.exempt
+@api_login_required
+def api_pay_booking(booking_id):
+    if current_user.role == "admin":
+        return jsonify({"error": "user_only"}), 403
+    booking = get_booking_for_user(booking_id, current_user.id)
+    if not booking:
+        return jsonify({"error": "booking_not_found"}), 404
+    payload = request.get_json(silent=True) or {}
+    method = str(payload.get("payment_method", ""))
+    try:
+        pay_booking(booking, method)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify({"ok": True, "booking": _row_to_dict(get_booking(booking_id))})
+
+
 @bp.route("/api/admin/users", methods=("GET",))
 @api_admin_required
 def api_admin_users():
@@ -186,6 +260,16 @@ def api_admin_booking_delete(booking_id):
 @api_admin_required
 def api_admin_import():
     message, category = import_pickle_data()
+    ok = category == "success"
+    status = 200 if ok else 400
+    return jsonify({"ok": ok, "category": category, "message": message}), status
+
+
+@bp.route("/api/admin/export", methods=("POST",))
+@csrf.exempt
+@api_admin_required
+def api_admin_export():
+    message, category = export_pickle_data()
     ok = category == "success"
     status = 200 if ok else 400
     return jsonify({"ok": ok, "category": category, "message": message}), status
@@ -321,13 +405,19 @@ def payment(booking_id):
 @bp.route("/admin")
 @admin_required
 def admin():
-    return render_template("admin.html", bookings=all_bookings(), statuses=BOOKING_STATUSES)
+    return render_template(
+        "admin.html",
+        bookings=all_bookings(),
+        statuses=BOOKING_STATUSES,
+        import_form=AdminImportForm(),
+        export_form=AdminExportForm(),
+    )
 
 
 @bp.route("/admin/users")
 @admin_required
 def admin_users():
-    return render_template("admin_users.html", users=all_users())
+    return render_template("admin_users.html", users=all_users(), create_form=RegisterForm())
 
 
 @bp.route("/admin/bookings")
@@ -337,11 +427,76 @@ def admin_bookings():
     return render_template(
         "admin_bookings.html",
         bookings=all_bookings(status),
+        users=all_users(),
         statuses=BOOKING_STATUSES,
         room_prices=ROOM_PRICES,
         payment_methods=PAYMENT_METHODS,
         selected_status=status,
+        create_form=AdminCreateBookingForm(),
     )
+
+
+@bp.route("/admin/users/create", methods=("POST",))
+@admin_required
+def admin_user_create():
+    form = RegisterForm()
+    if not form.validate_on_submit():
+        return render_template("admin_users.html", users=all_users(), create_form=form), 400
+    payload = {
+        "surname": form.surname.data,
+        "name": form.name.data,
+        "patronymic": form.patronymic.data or "",
+        "email": form.email.data,
+        "phone": form.phone.data,
+        "passport_series": form.passport_series.data,
+        "passport_number": form.passport_number.data,
+        "password": form.password.data,
+    }
+    create_user(payload, role="user")
+    flash("Пользователь создан.", "success")
+    return redirect(url_for("main.admin_users"))
+
+
+@bp.route("/admin/bookings/create", methods=("POST",))
+@admin_required
+def admin_booking_create():
+    form = AdminCreateBookingForm()
+    if not form.validate_on_submit():
+        status = request.args.get("status") or None
+        return render_template(
+            "admin_bookings.html",
+            bookings=all_bookings(status),
+            users=all_users(),
+            statuses=BOOKING_STATUSES,
+            room_prices=ROOM_PRICES,
+            payment_methods=PAYMENT_METHODS,
+            selected_status=status,
+            create_form=form,
+        ), 400
+    payload = {
+        "check_in": form.check_in.data.isoformat(),
+        "check_out": form.check_out.data.isoformat(),
+        "room_type": form.room_type.data,
+        "adults": form.adults.data,
+        "children": form.children.data,
+    }
+    create_booking(form.user_id.data, payload)
+    booking = get_db().execute("SELECT * FROM bookings ORDER BY id DESC LIMIT 1").fetchone()
+    if booking:
+        admin_update_booking(
+            booking["id"],
+            {
+                "check_in": booking["check_in"],
+                "check_out": booking["check_out"],
+                "adults": booking["adults"],
+                "children": booking["children"],
+                "room_type": booking["room_type"],
+                "status": form.status.data,
+                "payment_method": form.payment_method.data or None,
+            },
+        )
+    flash("Бронирование создано.", "success")
+    return redirect(url_for("main.admin_bookings"))
 
 
 @bp.route("/admin/booking/<int:booking_id>/edit", methods=("POST",))
@@ -403,6 +558,18 @@ def admin_import():
         flash_form_errors(form)
         return redirect(url_for("main.admin"))
     message, category = import_pickle_data()
+    flash(message, category)
+    return redirect(url_for("main.admin"))
+
+
+@bp.route("/admin/export", methods=("POST",))
+@admin_required
+def admin_export():
+    form = AdminExportForm()
+    if not form.validate_on_submit():
+        flash_form_errors(form)
+        return redirect(url_for("main.admin"))
+    message, category = export_pickle_data()
     flash(message, category)
     return redirect(url_for("main.admin"))
 
@@ -498,6 +665,29 @@ def import_pickle_data():
 
     db.commit()
     return f"Импорт завершен: пользователей {imported_users}, бронирований {imported_bookings}.", "success"
+
+
+def export_pickle_data():
+    export_path = current_app.config["EXPORT_PATH"]
+    db = get_db()
+    users = [_row_to_dict(item) for item in db.execute("SELECT * FROM users ORDER BY id ASC").fetchall()]
+    bookings = [_row_to_dict(item) for item in db.execute("SELECT * FROM bookings ORDER BY id ASC").fetchall()]
+    payload = {
+        "users": users,
+        "bookings": bookings,
+        "user_id": (users[-1]["id"] + 1) if users else 1,
+        "booking_id": (bookings[-1]["id"] + 1) if bookings else 1,
+    }
+    try:
+        export_path.parent.mkdir(parents=True, exist_ok=True)
+        with export_path.open("wb") as fh:
+            pickle.dump(payload, fh)
+    except OSError as exc:
+        return f"Не удалось сохранить экспорт: {exc}", "error"
+    return (
+        f"Данные сохранены в {export_path}: пользователей {len(users)}, бронирований {len(bookings)}.",
+        "success",
+    )
 
 
 def _extract_collection(payload, *names):
